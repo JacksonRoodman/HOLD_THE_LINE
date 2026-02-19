@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 
@@ -24,6 +23,53 @@ scene.background = new THREE.Color(0x0b1020);
 // ---------- Camera (perspective) ----------
 const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 2000);
 camera.position.set(0, 2, 6);
+
+// ---------- FPS-style fixed player + mouse look ----------
+const playerPos = new THREE.Vector3(567, 640, 254); // static user position
+camera.position.copy(playerPos);
+
+// yaw (left/right) and pitch (up/down), in radians
+let yaw = 0;
+let pitch = 0;
+
+// clamp to ±30 degrees
+const MAX_ANGLE = THREE.MathUtils.degToRad(30);
+
+// tweak feel
+const SENSITIVITY = 0.002;
+
+// lock pointer on click so mouse controls view
+renderer.domElement.addEventListener("click", () => {
+  renderer.domElement.requestPointerLock();
+});
+
+function applyLook() {
+  // yaw around world Y
+  camera.rotation.order = "YXZ";
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+  camera.rotation.z = 0;
+}
+
+// mouse move => update yaw/pitch (only when pointer is locked)
+window.addEventListener("mousemove", (e) => {
+  if (document.pointerLockElement !== renderer.domElement) return;
+
+  yaw   -= e.movementX * SENSITIVITY;
+  pitch -= e.movementY * SENSITIVITY;
+
+  // clamp BOTH yaw + pitch to ±30°
+  yaw = THREE.MathUtils.clamp(yaw, -MAX_ANGLE, MAX_ANGLE);
+  pitch = THREE.MathUtils.clamp(pitch, -MAX_ANGLE, MAX_ANGLE);
+
+  applyLook();
+});
+
+// keep camera fixed (static player)
+function syncCameraToPlayer() {
+  camera.position.copy(playerPos);
+}
+
 
 // ---------- Lights ----------
 // ✅ Stronger hemisphere (soft sky/ground fill)
@@ -50,11 +96,6 @@ scene.add(fill);
 const grid = new THREE.GridHelper(50, 50);
 grid.position.y = 0;
 scene.add(grid);
-
-// ---------- Controls ----------
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.target.set(0, 1, 0);
 
 // ---------- Load OBJ (with optional MTL) ----------
 async function loadLevelOBJ({
@@ -83,7 +124,7 @@ async function loadLevelOBJ({
 
       scene.add(object);
 
-      if (fitCamera) fitCameraToObject(camera, object, controls);
+      if (fitCamera) fitCameraToObject(camera, object);
 
       resolve(object);
     };
@@ -129,9 +170,6 @@ function fitCameraToObject(camera, object, controls) {
   camera.near = Math.max(0.01, maxDim / 1000);
   camera.far = Math.max(1000, maxDim * 10);
   camera.updateProjectionMatrix();
-
-  controls.target.copy(center);
-  controls.update();
 }
 
 // ---------- “Player” placeholder ----------
@@ -145,12 +183,12 @@ const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
-
   const dt = Math.min(clock.getDelta(), 0.033);
 
-  controls.update();
+  syncCameraToPlayer();
   renderer.render(scene, camera);
 }
+
 
 animate();
 
