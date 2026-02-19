@@ -33,7 +33,7 @@ let yaw = 0;
 let pitch = 0;
 
 // clamp to ±30 degrees
-const MAX_ANGLE = THREE.MathUtils.degToRad(30);
+const MAX_ANGLE = THREE.MathUtils.degToRad(360);
 
 // tweak feel
 const SENSITIVITY = 0.002;
@@ -162,7 +162,7 @@ function fitCameraToObject(camera, object, controls) {
   const center = box.getCenter(new THREE.Vector3());
 
   const maxDim = Math.max(size.x, size.y, size.z);
-  const fov = (camera.fov * Math.PI) / 180;
+  const fov = (camera.fov * Math.PI) ;
   let cameraZ = Math.abs((maxDim / 2) / Math.tan(fov / 2));
   cameraZ *= 1.2;
 
@@ -186,11 +186,11 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.033);
 
   syncCameraToPlayer();
+  updateElephants(dt);
   renderer.render(scene, camera);
 }
 
 
-animate();
 
 // ---------- Resize ----------
 window.addEventListener("resize", () => {
@@ -207,63 +207,125 @@ const castle = await loadLevelOBJ({
   fitCamera: true,
 });
 
-const elephant = await loadLevelOBJ({
+const elephantSpawnPoints = [
+  new THREE.Vector3(-303.978, 1032.740, -317.149),
+];
+
+const elephantTargetPoints = [
+  new THREE.Vector3(567, 640, 254),
+];
+const elephants = [];
+
+const elephantTemplate = await loadLevelOBJ({
   objPath: "/models/elephant.obj",
   mtlPath: "/models/elephant.mtl",
   scale: .1, // you may need 0.01 or 0.1
-  position: new THREE.Vector3(-56.453, 616.633, 175.618),
   rotation: new THREE.Euler(3*Math.PI/2, 0, 0),
   fitCamera: false,
 });
 
-const elephant_2 = await loadLevelOBJ({
-  objPath: "/models/elephant.obj",
-  mtlPath: "/models/elephant.mtl",
-  scale: .1, // you may need 0.01 or 0.1
-  position: new THREE.Vector3(-303.978, 1032.740, -317.149),
-  rotation: new THREE.Euler(3*Math.PI/2, 0, 0),
-  fitCamera: false,
-});
+elephantTemplate.visible = false; 
 
+function spawnElephants() {
+  for (let i = 0; i < elephantSpawnPoints.length; i++) {
+    const spawn = elephantSpawnPoints[i];
+    const target = elephantTargetPoints[i];
+    const e = elephantTemplate.clone(true);
+    e.visible = true;
+    e.position.copy(spawn);
+    e.rotation.copy(elephantTemplate.rotation);
+    e.scale.copy(elephantTemplate.scale);
+    scene.add(e);
+    elephants.push({
+      mesh: e,
+      target: target.clone(),
+      speed: 25,
+      arrived: false,
+    });
+  }
+}
 
+spawnElephants(2);
 
+function updateElephants(dt){
+  for (const e of elephants) {
+    if(e.arrived) continue;
+    const pos = e.mesh.position;
+    const toTarget = new THREE.Vector3().subVectors(e.target, pos);
+    const dist = toTarget.length();
+    const stopRadius = 1.0;
+    if(dist <= stopRadius){
+      e.mesh.position.copy(e.target);
+      e.arrived = true;
+      continue;
+    } 
+    toTarget.normalize();
+    const step = e.speed * dt;
+    if(step >= dist){
+      pos.copy(e.target);
+      e.arrived = true;
+    } else {
+      pos.addScaledVector(toTarget, step);
+    }
+  }
+}
+// const elephant = await loadLevelOBJ({
+  //   objPath: "/models/elephant.obj",
+  //   mtlPath: "/models/elephant.mtl",
+  //   scale: .1, // you may need 0.01 or 0.1
+//   position: new THREE.Vector3(-56.453, 616.633, 175.618),
+//   rotation: new THREE.Euler(3*Math.PI/2, 0, 0),
+//   fitCamera: false,
+// });
 
-
-
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-// a visible marker to show where you clicked
-const marker = new THREE.Mesh(
-  new THREE.SphereGeometry(0.15, 16, 16),
-  new THREE.MeshStandardMaterial({ color: 0xff3333 })
-);
-marker.visible = false;
-scene.add(marker);
-
-window.addEventListener("pointerdown", (e) => {
-  if (!castle) return;
-
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-  raycaster.setFromCamera(mouse, camera);
-
+// const elephant_2 = await loadLevelOBJ({
+  //   objPath: "/models/elephant.obj",
+  //   mtlPath: "/models/elephant.mtl",
+  //   scale: .1, // you may need 0.01 or 0.1
+  //   position: new THREE.Vector3(-303.978, 1032.740, -317.149),
+  //   rotation: new THREE.Euler(3*Math.PI/2, 0, 0),
+  //   fitCamera: false,
+  // });
+  
+  
+  
+  
+  
+  
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  
+  // a visible marker to show where you clicked
+  const marker = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0xff3333 })
+  );
+  marker.visible = false;
+  scene.add(marker);
+  
+  window.addEventListener("pointerdown", (e) => {
+    if (!castle) return;
+    
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(mouse, camera);
+    
   // hit test against the castle mesh
   const hits = raycaster.intersectObject(castle, true);
 
   if (hits.length > 0) {
     const hit = hits[0];
     const p = hit.point; // <-- WORLD COORDINATES
-
+    
     marker.visible = true;
     marker.position.copy(p);
-
+    
     console.log(
       "Castle point (world):",
       `x=${p.x.toFixed(3)} y=${p.y.toFixed(3)} z=${p.z.toFixed(3)}`
     );
-
+    
     // Optional: also log which mesh you clicked
     console.log("Mesh:", hit.object.name || hit.object.uuid);
   }
@@ -271,3 +333,5 @@ window.addEventListener("pointerdown", (e) => {
 
 
 
+
+animate();
