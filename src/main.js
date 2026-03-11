@@ -195,7 +195,7 @@ const elephantTemplate = await loadLevelOBJ({
 elephantTemplate.visible = false; 
 const elephantSphere = new THREE.Sphere();
 new THREE.Box3().setFromObject(elephantTemplate).getBoundingSphere(elephantSphere);
-const ELEPHANT_RADIUS = elephantSphere.radius;
+const ELEPHANT_RADIUS = elephantSphere.radius + 7;
 
 const CANNONBALL_RADIUS = 2; 
 
