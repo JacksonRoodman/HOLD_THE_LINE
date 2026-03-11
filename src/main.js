@@ -3,6 +3,7 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 import { update } from "three/examples/jsm/libs/tween.module.js";
 
+// ---------- Renderer ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -16,9 +17,11 @@ renderer.toneMappingExposure = 1.8;
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
 
+// ---------- Scene ----------
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
 
+// ---------- Camera (perspective) ----------
 const camera = new THREE.PerspectiveCamera(
   70,
   window.innerWidth / window.innerHeight,
@@ -26,7 +29,8 @@ const camera = new THREE.PerspectiveCamera(
   5000
 );
 
-
+// ---------- Static camera position + static view ----------
+//const playerPos = new THREE.Vector3(500, 650, 240);
 const playerPos = new THREE.Vector3(-95, 760, 445);
 camera.position.copy(playerPos);
 
@@ -110,7 +114,6 @@ async function loadLevelOBJ({
   });
 }
 
-
 const player = {
   position: new THREE.Vector3(496.635, 615.974, 155.027),
   velocity: new THREE.Vector3(),
@@ -144,10 +147,25 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.33);
   updateElephants(dt);
-  // for (const ball of cannonballs) {
-  //   ball.mesh.position.addScaledVector(ball.velocity, dt);
-  // }
-  checkCannonballWallCollisions(dt);
+  for (let i = cannonballs.length - 1; i >= 0; i--) {
+    const ball = cannonballs[i];
+
+    ball.elapsed += dt;
+    const t = Math.min(ball.elapsed / ball.duration, 1);
+
+    // Base position along straight line
+    const pos = new THREE.Vector3().lerpVectors(ball.start, ball.end, t);
+
+    // Add vertical arc
+    pos.y += 4 * ball.arcHeight * t * (1 - t);
+
+    ball.mesh.position.copy(pos);
+
+    if (t >= 1) {
+      scene.remove(ball.mesh);
+      cannonballs.splice(i, 1);
+    }
+  }
   checkCannonballElephantCollisions();
   renderer.render(scene, camera);
 }
@@ -356,32 +374,47 @@ window.addEventListener("pointerdown", (e) => {
 
   raycaster.setFromCamera(mouse, camera);
 
-  const hits = raycaster.intersectObject(castle, true);
+  // hit test against the castle mesh
+  let hits = [];
+  for (const elephant of elephants){
+    hits = raycaster.intersectObject(elephant.mesh, true);
+    if (hits.length > 0) {
+      break;
+    }
+  }
+  if (hits.length <= 0) {
+    hits = raycaster.intersectObject(castle, true);
+  }
 
   if (hits.length > 0) {
     const hit = hits[0];
-    const p = hit.point; 
+    const p = hit.point; // <-- WORLD COORDINATES
 
     marker.visible = true;
     marker.position.copy(p);
-
-    const newBall = ball.clone();
-    newBall.position.set(-70, 740, 405);
+    
+    const cannonStart = new THREE.Vector3(-70, 740, 405);
+    const cannonballMesh = ball.clone();
+    cannonballMesh.position.copy(cannonStart);
 
     cannonballs.push({
-      mesh: newBall,
-      velocity: new THREE.Vector3()
-        .subVectors(p, new THREE.Vector3(-70, 740, 405))
-        .normalize()
-        .multiplyScalar(300)
+      mesh: cannonballMesh,
+      start: cannonStart.clone(),
+      end: p.clone(),
+      elapsed: 0,
+      duration: 1.2,   // same total travel time each shot
+      arcHeight: 25    // same curve height each shot
     });
-    scene.add(newBall);
+
+    scene.add(cannonballMesh);
+    scene.add(cannonballs[cannonballs.length - 1].mesh);
 
     console.log(
       "Castle point (world):",
       `x=${p.x.toFixed(3)} y=${p.y.toFixed(3)} z=${p.z.toFixed(3)}`
     );
 
+    // Optional: also log which mesh you clicked
     console.log("Mesh:", hit.object.name || hit.object.uuid);
   }
 });
