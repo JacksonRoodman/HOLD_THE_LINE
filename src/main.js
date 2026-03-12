@@ -291,6 +291,12 @@ const elephantSpawnPoints = [
   new THREE.Vector3( -381.960, 1000, -252.747),
   new THREE.Vector3( -203.646, 1000, -419.063),
   new THREE.Vector3( -259.792, 1000, -367.821),
+  new THREE.Vector3( -360.468, 680.477, 18.428),
+  new THREE.Vector3( -281.417, 680.477, 18.947),
+  new THREE.Vector3( -226.299, 690.783, -195.286),
+  new THREE.Vector3( 558.486, 999.628, -501.870),
+  new THREE.Vector3( 53.320, 705.908, -256.788),
+  new THREE.Vector3( -295.128, 863.092, -516.620),
 ];
 
 const elephantTargetPoints = [
@@ -309,10 +315,16 @@ const elephantTargetPoints = [
   new THREE.Vector3(-376.770, 554.696, 112.117),
   new THREE.Vector3( -429.870, 588.085, 180.441),
   new THREE.Vector3( 226.665, 763.263, 117.342),
-  new THREE.Vector3( -434.873, 1032.820, -205.446),
+  new THREE.Vector3( -405.491, 1032.820, -183.197),
   new THREE.Vector3( -353.692, 1032.820, -239.315),
   new THREE.Vector3( -182.246, 1032.820, -400.552),
   new THREE.Vector3( -232.765, 1032.820, -347.828),
+  new THREE.Vector3( -360.468, 740.477, 18.428),
+  new THREE.Vector3( -281.417, 740.477, 18.947),
+  new THREE.Vector3( -226.299, 751.783, -195.286),
+  new THREE.Vector3( 569.990, 999.628, -411.636),
+  new THREE.Vector3( 76.108, 705.908, -218.888),
+  new THREE.Vector3( -183.977, 863.092, -624.446),
 ];
 const elephants = [];
 const occupiedSpawnIndices = new Set();
@@ -352,7 +364,7 @@ function spawnElephantAtIndex(i) {
   occupiedSpawnIndices.add(i);
 }
 
-let MAX_ACTIVE_ELEPHANTS = 6;
+let MAX_ACTIVE_ELEPHANTS = elephantSpawnPoints.length;
 
 function spawnElephantsBatch() {
   const freeIndices = [];
