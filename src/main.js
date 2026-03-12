@@ -482,6 +482,10 @@ window.addEventListener("pointerdown", (e) => {
     hits = raycaster.intersectObject(castle, true);
   }
 
+  if (hits.length <= 0) {
+    hits = raycaster.intersectObject(skyDome, true);
+  }
+
   if (hits.length > 0) {
     const hit = hits[0];
     const p = hit.point; // <-- WORLD COORDINATES
