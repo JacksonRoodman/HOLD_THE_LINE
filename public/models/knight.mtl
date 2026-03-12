@@ -1,0 +1,6 @@
+newmtl Silver
+Ka 0.23125 0.23125 0.23125     # Ambient: Dark grey shadow
+Kd 0.35 0.35 0.35       # Diffuse: The base "grey" color
+Ks 0.773911 0.773911 0.773911  # Specular: High brightness for highlights
+Ns 89.6                        # Shininess: High value for a polished look
+illum 3                        # Illumination model for metal/reflection
