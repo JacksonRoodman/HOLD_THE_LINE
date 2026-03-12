@@ -19,7 +19,7 @@ document.body.appendChild(renderer.domElement);
 
 // ---------- Scene ----------
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB);
+// scene.background = new THREE.Color(0x87CEEB);
 
 // ---------- Camera (perspective) ----------
 const camera = new THREE.PerspectiveCamera(
@@ -41,21 +41,64 @@ camera.rotation.set(
   0
 );
 
+const textureLoader = new THREE.TextureLoader();
+const skyTexture = textureLoader.load(
+  "/models/sky.jpg",
+  () => {
+    console.log("Sky texture loaded");
+  },
+  undefined,
+  (err) => {
+    console.error("Sky texture failed to load:", err);
+  }
+);
+skyTexture.colorSpace = THREE.SRGBColorSpace;
+skyTexture.wrapS = THREE.RepeatWrapping;
+skyTexture.wrapT = THREE.ClampToEdgeWrapping;
+skyTexture.repeat.set(1, 1);
+const skyGeometry = new THREE.SphereGeometry(2500, 64, 64);
+const skyMaterial = new THREE.MeshBasicMaterial({
+  map: skyTexture,
+  side: THREE.BackSide
+});
+
+const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
+scene.add(skyDome);
+
 const hemi = new THREE.HemisphereLight(0xffffff, 0x444466, 1.2);
 scene.add(hemi);
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+const ambient = new THREE.AmbientLight(0x87aaff, 0.35);
 scene.add(ambient);
 
-const dir = new THREE.DirectionalLight(0xffffff, 1.0);
-dir.position.set(10, 20, 10);
-dir.castShadow = true;
-dir.shadow.mapSize.set(2048, 2048);
-scene.add(dir);
+// const dir = new THREE.DirectionalLight(0xffffff, 1.0);
+// dir.position.set(10, 20, 10);
+// dir.castShadow = true;
+// dir.shadow.mapSize.set(2048, 2048);
+// scene.add(dir);
+const sun = new THREE.DirectionalLight(0xffffff, 2.5);
+sun.position.set(200, 500, 200); 
+sun.castShadow = true;
 
-const fill = new THREE.DirectionalLight(0xffffff, 0.6);
-fill.position.set(-10, 10, -5);
-scene.add(fill);
+scene.add(sun);
+scene.add(sun.target);
+sun.target.position.set(0, 0, 0);
+sun.shadow.mapSize.width = 4096;
+sun.shadow.mapSize.height = 4096;
+
+sun.shadow.camera.left = -1000;
+sun.shadow.camera.right = 1000;
+sun.shadow.camera.top = 1000;
+sun.shadow.camera.bottom = -1000;
+
+sun.shadow.camera.near = 0.5;
+sun.shadow.camera.far = 3000;
+
+sun.shadow.bias = -0.0005;
+
+// const fill = new THREE.DirectionalLight(0xffffff, 0.6);
+// fill.position.set(-10, 10, -5);
+// scene.add(fill);
 
 const grid = new THREE.GridHelper(50, 50);
 grid.position.y = 0;
@@ -145,6 +188,8 @@ function checkCannonballWallCollisions(dt) {
 
 function animate() {
   requestAnimationFrame(animate);
+  skyTexture.offset.x += 0.00005; 
+  skyDome.position.copy(camera.position);
   const dt = Math.min(clock.getDelta(), 0.33);
   updateElephants(dt);
   for (let i = cannonballs.length - 1; i >= 0; i--) {
@@ -227,7 +272,7 @@ function removeCannonball(index){
 }
 
 const elephantSpawnPoints = [
-  new THREE.Vector3(-303.978, 1032.740, -317.149),
+  new THREE.Vector3(-303.978, 1000, -317.149),
   new THREE.Vector3(-4.669, 400, 89),
   new THREE.Vector3(575, 999, -544),
   new THREE.Vector3(46, 650, -4),
@@ -235,6 +280,17 @@ const elephantSpawnPoints = [
   new THREE.Vector3(-118, 650, -2.45),
   new THREE.Vector3(-455, 650, 117),
   new THREE.Vector3(267, 554, 278),
+  new THREE.Vector3(197, 656, 431),
+  new THREE.Vector3(669.224, 554.696, -142.085),
+  new THREE.Vector3( -660.388, 1052.297, -522.717),
+  new THREE.Vector3( 101.020, 663.263, 123.801),
+  new THREE.Vector3( -259.169, 554.696, 115.403),
+  new THREE.Vector3( -429.870, 450.085, 180.441),
+  new THREE.Vector3( 226.665, 663.263, 117.342),
+  new THREE.Vector3( -434.873, 1000, -205.446),
+  new THREE.Vector3( -381.960, 1000, -252.747),
+  new THREE.Vector3( -203.646, 1000, -419.063),
+  new THREE.Vector3( -259.792, 1000, -367.821),
 ];
 
 const elephantTargetPoints = [
@@ -246,7 +302,17 @@ const elephantTargetPoints = [
   new THREE.Vector3(-118, 730, -2.45),
   new THREE.Vector3(-455, 755, 117),
   new THREE.Vector3(-148, 554, 141),
-
+  new THREE.Vector3(204, 656, 195),
+  new THREE.Vector3(650, 550, -100),
+  new THREE.Vector3( -649.580, 1052.297, -285.888),
+  new THREE.Vector3( 101.020, 763.263, 123.801),
+  new THREE.Vector3(-376.770, 554.696, 112.117),
+  new THREE.Vector3( -429.870, 588.085, 180.441),
+  new THREE.Vector3( 226.665, 763.263, 117.342),
+  new THREE.Vector3( -434.873, 1032.820, -205.446),
+  new THREE.Vector3( -353.692, 1032.820, -239.315),
+  new THREE.Vector3( -182.246, 1032.820, -400.552),
+  new THREE.Vector3( -232.765, 1032.820, -347.828),
 ];
 const elephants = [];
 const occupiedSpawnIndices = new Set();
@@ -286,11 +352,29 @@ function spawnElephantAtIndex(i) {
   occupiedSpawnIndices.add(i);
 }
 
+let MAX_ACTIVE_ELEPHANTS = 6;
+
 function spawnElephantsBatch() {
+  const freeIndices = [];
+
   for (let i = 0; i < elephantSpawnPoints.length; i++) {
     if (!occupiedSpawnIndices.has(i)) {
-      spawnElephantAtIndex(i);
+      freeIndices.push(i);
     }
+  }
+
+  for (let i = freeIndices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [freeIndices[i], freeIndices[j]] = [freeIndices[j], freeIndices[i]];
+  }
+
+  const numToSpawn = Math.min(
+    MAX_ACTIVE_ELEPHANTS - elephants.length,
+    freeIndices.length
+  );
+
+  for (let i = 0; i < numToSpawn; i++) {
+    spawnElephantAtIndex(freeIndices[i]);
   }
 }
 
