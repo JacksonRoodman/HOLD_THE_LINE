@@ -16,6 +16,17 @@ renderer.toneMappingExposure = 1.8;
 
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
+const scoreText = document.createElement("div");
+scoreText.style.position = "absolute";
+scoreText.style.top = "20px";
+scoreText.style.left = "20px";
+scoreText.style.fontSize = "24px";
+scoreText.style.color = "white";
+scoreText.style.fontFamily = "fantasy";
+scoreText.style.pointerEvents = "none";
+scoreText.innerText = "Score: 0";
+document.body.appendChild(scoreText);
+let score = 0;
 
 // ---------- Scene ----------
 const scene = new THREE.Scene();
@@ -259,6 +270,8 @@ function checkCannonballElephantCollisions() {
         cannonballs.splice(bi, 1);
 
         removeElephant(e.mesh);
+        score++;
+        scoreText.innerText = `Score: ${score}`;
 
         break;
       }
