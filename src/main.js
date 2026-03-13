@@ -17,6 +17,20 @@ renderer.toneMappingExposure = 1.8;
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
 
+//Start screen:
+let gameStarted = false;
+const startScreen = document.getElementById("startScreen");
+const startButton = document.getElementById("startButton");
+
+startButton.addEventListener("click", () => {
+  camera.position.copy(gameplayCameraPos);
+  camera.rotation.copy(gameplayCameraRot);
+
+  startScreen.style.display = "none";
+  gameStarted = true;
+})
+
+
 // ---------- Scene ----------
 const scene = new THREE.Scene();
 // scene.background = new THREE.Color(0x87CEEB);
@@ -34,12 +48,21 @@ const camera = new THREE.PerspectiveCamera(
 const playerPos = new THREE.Vector3(-95, 760, 445);
 camera.position.copy(playerPos);
 
+const gameplayCameraPos = playerPos.clone();
+const gameplayCameraRot = camera.rotation.clone();
+
 camera.rotation.order = "YXZ";
 camera.rotation.set(
   THREE.MathUtils.degToRad(0), 
   THREE.MathUtils.degToRad(0),  
   0
 );
+
+//Start camera orbit:
+const orbitCenter = new THREE.Vector3(0, 750, 0);
+let orbitAngle = 0;
+const orbitRadius = 800;
+const orbitSpeed = 0.25;
 
 const textureLoader = new THREE.TextureLoader();
 const skyTexture = textureLoader.load(
@@ -188,10 +211,27 @@ function checkCannonballWallCollisions(dt) {
 
 function animate() {
   requestAnimationFrame(animate);
+
   skyTexture.offset.x += 0.00005; 
   skyDome.position.copy(camera.position);
+
+  if (!gameStarted) {
+    orbitAngle += orbitSpeed * clock.getDelta();
+
+    camera.position.x = orbitCenter.x + Math.cos(orbitAngle) * orbitRadius;
+    camera.position.z = orbitCenter.z + Math.sin(orbitAngle) * orbitRadius;
+    camera.position.y = orbitCenter.y + 120 + Math.sin(orbitAngle * 0.6) * 40;
+
+    camera.lookAt(orbitCenter);
+
+    renderer.render(scene, camera);
+    return;
+  }
+
+
   const dt = Math.min(clock.getDelta(), 0.33);
   updateElephants(dt);
+
   for (let i = cannonballs.length - 1; i >= 0; i--) {
     const ball = cannonballs[i];
 
@@ -464,6 +504,7 @@ scene.add(marker);
 
 window.addEventListener("pointerdown", (e) => {
   if (!castle) return;
+  if (!gameStarted) return;
 
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
