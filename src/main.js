@@ -438,13 +438,14 @@ function spawnKnightAtIndex(i) {
     speed: 25,
     arrived: false,
     spawnIndex: i,
+    spawnTime: clock.elapsedTime
   });
 
   occupiedSpawnIndices.add(i);
 }
 
-let MAX_ACTIVE_ELEPHANTS = 7;
-let MAX_ACTIVE_KNIGHTS = 3;
+let MAX_ACTIVE_ELEPHANTS = 10;
+let MAX_ACTIVE_KNIGHTS = 5;
 
 function spawnElephantsBatch() {
   const freeIndices = [];
@@ -536,7 +537,13 @@ function updateElephants(dt){
 
 function updateKnights(dt){
   for (const k of knights) {
+    if (clock.elapsedTime - k.spawnTime >= 9 + Math.random() * 3) {
+      removeKnight(k.mesh);
+      continue;
+    }
+
     if(k.arrived) continue;
+
     const pos = k.mesh.position;
     const toTarget = new THREE.Vector3().subVectors(k.target, pos);
     const dist = toTarget.length();
