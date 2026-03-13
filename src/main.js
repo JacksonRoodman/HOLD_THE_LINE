@@ -16,6 +16,17 @@ renderer.toneMappingExposure = 1.8;
 
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
+const scoreText = document.createElement("div");
+scoreText.style.position = "absolute";
+scoreText.style.top = "20px";
+scoreText.style.left = "20px";
+scoreText.style.fontSize = "24px";
+scoreText.style.color = "white";
+scoreText.style.fontFamily = "fantasy";
+scoreText.style.pointerEvents = "none";
+scoreText.innerText = "Score: 0";
+document.body.appendChild(scoreText);
+let score = 0;
 
 //Start screen:
 let gameStarted = false;
@@ -91,6 +102,7 @@ scene.add(skyDome);
 const hemi = new THREE.HemisphereLight(0xffffff, 0x444466, 1.2);
 scene.add(hemi);
 
+
 const ambient = new THREE.AmbientLight(0x87aaff, 0.35);
 scene.add(ambient);
 
@@ -99,6 +111,28 @@ scene.add(ambient);
 // dir.castShadow = true;
 // dir.shadow.mapSize.set(2048, 2048);
 // scene.add(dir);
+
+const explosionTexture = new THREE.TextureLoader().load("/models/explosion.gif");
+explosionTexture.colorSpace = THREE.SRGBColorSpace;
+
+function spawnExplosion(worldPosition) {
+  const material = new THREE.SpriteMaterial({
+    map: explosionTexture,
+    transparent: true,
+    depthWrite: false
+  });
+
+  const sprite = new THREE.Sprite(material);
+  sprite.position.copy(worldPosition);
+  sprite.scale.set(40, 100, 1); 
+  scene.add(sprite);
+
+  setTimeout(() => {
+    scene.remove(sprite);
+    material.dispose();
+  }, 1500);
+}
+
 const sun = new THREE.DirectionalLight(0xffffff, 2.5);
 sun.position.set(200, 500, 200); 
 sun.castShadow = true;
@@ -298,7 +332,10 @@ function checkCannonballElephantCollisions() {
         scene.remove(b.mesh);
         cannonballs.splice(bi, 1);
 
+        spawnExplosion(e.mesh.position.clone());
         removeElephant(e.mesh);
+        score++;
+        scoreText.innerText = `Score: ${score}`;
 
         break;
       }
