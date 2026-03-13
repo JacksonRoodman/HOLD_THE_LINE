@@ -1,0 +1,15 @@
+# Material for the wooden frame
+newmtl frame_wood
+  Ka 1.000 1.000 1.000    # Ambient color (white to allow full texture visibility)
+  Kd 1.000 1.000 1.000    # Diffuse color (white)
+  Ks 0.000 0.000 0.000    # Specular color (no shine for wood)
+  Ns 10.000               # Specular exponent
+  map_Kd wood_material.jpg
+
+# Material for the metal barrel
+newmtl canon_metal
+  Ka 0.200 0.200 0.200
+  Kd 0.300 0.300 0.300    # Dark grey for metal
+  Ks 1.000 1.000 1.000    # High specular for metallic shine
+  Ns 50.000               # Sharp highlights
+  Illum 2

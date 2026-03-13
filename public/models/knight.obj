@@ -4,7 +4,7 @@
 #
 # object 18489_Knight_V1_
 #
-mtllib silver_material.mtl
+mtllib knight.mtl
 usemtl Silver
 
 v  -0.1593 -1.9167 11.9195

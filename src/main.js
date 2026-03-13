@@ -285,7 +285,7 @@ function checkCannonballElephantCollisions() {
         cannonballs.splice(bi, 1);
 
         removeElephant(e.mesh);
-        score++;
+        score += 100;
         scoreText.innerText = `Score: ${score}`;
 
         break;
@@ -309,6 +309,8 @@ function checkCannonballKnightCollisions() {
         cannonballs.splice(bi, 1);
 
         removeKnight(k.mesh);
+        score -= 100;
+        scoreText.innerText = `Score: ${score}`;
 
         break;
       }
@@ -557,6 +559,7 @@ function updateKnights(dt){
 
 const cannon = await loadLevelOBJ({
   objPath: "/models/cannon.obj",
+  mtlPath: "/models/cannon.mtl",
   scale: 5,
   position: new THREE.Vector3(-70, 735, 410),
   rotation: new THREE.Euler(Math.PI/16, -Math.PI * 31/32, 0),
