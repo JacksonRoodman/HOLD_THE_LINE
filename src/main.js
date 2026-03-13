@@ -624,8 +624,8 @@ function spawnKnightAtIndex(i) {
   occupiedSpawnIndices.add(i);
 }
 
-let MAX_ACTIVE_ELEPHANTS = 10;
-let MAX_ACTIVE_KNIGHTS = 5;
+let MAX_ACTIVE_ELEPHANTS = 5;
+let MAX_ACTIVE_KNIGHTS = 10;
 
 function spawnElephantsBatch() {
   const freeIndices = [];
