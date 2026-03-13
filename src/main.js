@@ -332,6 +332,7 @@ function checkCannonballKnightCollisions() {
         scene.remove(b.mesh);
         cannonballs.splice(bi, 1);
 
+        spawnExplosion(k.mesh.position.clone());
         removeKnight(k.mesh);
         score -= 100;
         scoreText.innerText = `Score: ${score}`;
