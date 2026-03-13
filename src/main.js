@@ -16,6 +16,17 @@ renderer.toneMappingExposure = 1.8;
 
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
+const scoreText = document.createElement("div");
+scoreText.style.position = "absolute";
+scoreText.style.top = "20px";
+scoreText.style.left = "20px";
+scoreText.style.fontSize = "24px";
+scoreText.style.color = "white";
+scoreText.style.fontFamily = "fantasy";
+scoreText.style.pointerEvents = "none";
+scoreText.innerText = "Score: 0";
+document.body.appendChild(scoreText);
+let score = 0;
 
 // ---------- Scene ----------
 const scene = new THREE.Scene();
@@ -43,7 +54,7 @@ camera.rotation.set(
 
 const textureLoader = new THREE.TextureLoader();
 const skyTexture = textureLoader.load(
-  "/models/sky.jpg",
+  "/models/sky.png",
   () => {
     console.log("Sky texture loaded");
   },
@@ -55,7 +66,7 @@ const skyTexture = textureLoader.load(
 skyTexture.colorSpace = THREE.SRGBColorSpace;
 skyTexture.wrapS = THREE.RepeatWrapping;
 skyTexture.wrapT = THREE.ClampToEdgeWrapping;
-skyTexture.repeat.set(1, 1);
+skyTexture.repeat.set(2, 5);
 const skyGeometry = new THREE.SphereGeometry(2500, 64, 64);
 const skyMaterial = new THREE.MeshBasicMaterial({
   map: skyTexture,
@@ -274,6 +285,8 @@ function checkCannonballElephantCollisions() {
         cannonballs.splice(bi, 1);
 
         removeElephant(e.mesh);
+        score++;
+        scoreText.innerText = `Score: ${score}`;
 
         break;
       }
