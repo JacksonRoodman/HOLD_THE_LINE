@@ -46,6 +46,51 @@ scoreText.innerText = "Score: 0";
 document.body.appendChild(scoreText);
 let score = 0;
 
+//Timer:
+let timeRemaining = 30;
+let gameOver = false;
+
+const timerText = document.createElement("div");
+timerText.style.position = "absolute";
+timerText.style.top = "50px";
+timerText.style.left = "20px";
+timerText.style.fontSize = "24px";
+timerText.style.color = "white";
+timerText.style.fontFamily = "fantasy";
+timerText.style.pointerEvents = "none";
+timerText.innerText = "Time: 30";
+document.body.appendChild(timerText);
+
+function endGame() {
+  gameOver = true;
+  gameStarted = false;
+
+  battleMusic.pause();
+
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem("castleHighScore", highScore);
+    highScoreText.innerText = `High Score: ${highScore}`;
+  }
+
+  showGameOverScreen();
+}
+
+//High Score:
+const highScoreText = document.createElement("div");
+highScoreText.style.position = "absolute";
+highScoreText.style.top = "80px";
+highScoreText.style.left = "20px";
+highScoreText.style.fontSize = "24px";
+highScoreText.style.color = "white";
+highScoreText.style.fontFamily = "fantasy";
+highScoreText.style.pointerEvents = "none";
+
+let highScore = localStorage.getItem("castleHighScore") || 0;
+highScoreText.innerText = `High Score: ${highScore}`;
+
+document.body.appendChild(highScoreText);
+
 //Start screen:
 let gameStarted = false;
 const startScreen = document.getElementById("startScreen");
@@ -59,8 +104,41 @@ startButton.addEventListener("click", () => {
   battleMusic.play();
 
   startScreen.style.display = "none";
+
+  score = 0;
+  scoreText.innerText = "Score: 0";
+
+  timeRemaining = 30;
+  timerText.innerText = "Time: 30";
+
+  gameOver = false;
   gameStarted = true;
 })
+
+//Game Over Screen:
+function showGameOverScreen() {
+  const gameOverDiv = document.createElement("div");
+  gameOverDiv.style.position = "absolute";
+  gameOverDiv.style.top = "50%";
+  gameOverDiv.style.left = "50%";
+  gameOverDiv.style.transform = "translate(-50%, -50%)";
+  gameOverDiv.style.textAlign = "center";
+  gameOverDiv.style.color = "white";
+  gameOverDiv.style.fontFamily = "fantasy";
+  gameOverDiv.style.fontSize = "40px";
+
+  gameOverDiv.innerHTML = `
+    <div>Time Up!</div>
+    <div style="font-size:28px;margin-top:10px;">Score: ${score}</div>
+    <button id="retryButton" style="margin-top:20px;font-size:24px;padding:10px 30px;">Try Again</button>
+  `;
+
+  document.body.appendChild(gameOverDiv);
+
+  document.getElementById("retryButton").onclick = () => {
+    location.reload();
+  };
+}
 
 
 // ---------- Scene ----------
@@ -285,6 +363,21 @@ function animate() {
 
 
   const dt = Math.min(clock.getDelta(), 0.33);
+
+  if (!gameOver) {
+    timeRemaining -= dt;
+
+    if (timeRemaining < 0) {
+      timeRemaining = 0;
+    }
+
+    timerText.innerText = `Time: ${Math.ceil(timeRemaining)}`;
+
+    if (timeRemaining <= 0) {
+      endGame();
+    }
+  }
+
   updateElephants(dt);
 
   for (let i = cannonballs.length - 1; i >= 0; i--) {
@@ -563,7 +656,7 @@ scene.add(marker);
 
 window.addEventListener("pointerdown", (e) => {
   if (!castle) return;
-  if (!gameStarted) return;
+  if (!gameStarted || gameOver) return;
 
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
