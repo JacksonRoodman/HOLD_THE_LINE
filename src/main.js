@@ -9,11 +9,29 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 
-
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.8;
 
+//Music:
+const battleMusic = new Audio("/audio/battle.mp3");
+battleMusic.loop = true;
+battleMusic.volume = 0.4;
+
+//Sound Effects:
+function playSound(sound) {
+  const s = sound.cloneNode();
+  s.volume = sound.volume;
+  s.play();
+}
+
+const cannonFireSound = new Audio("/audio/fire.mp3");
+cannonFireSound.volume = 0.6;
+
+const hitSound = new Audio("/audio/hit.mp3");
+hitSound.volume = 0.6;
+
+//Score:
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
 const scoreText = document.createElement("div");
@@ -27,6 +45,101 @@ scoreText.style.pointerEvents = "none";
 scoreText.innerText = "Score: 0";
 document.body.appendChild(scoreText);
 let score = 0;
+
+//Timer:
+let timeRemaining = 30;
+let gameOver = false;
+
+const timerText = document.createElement("div");
+timerText.style.position = "absolute";
+timerText.style.top = "50px";
+timerText.style.left = "20px";
+timerText.style.fontSize = "24px";
+timerText.style.color = "white";
+timerText.style.fontFamily = "fantasy";
+timerText.style.pointerEvents = "none";
+timerText.innerText = "Time: 30";
+document.body.appendChild(timerText);
+
+function endGame() {
+  gameOver = true;
+  gameStarted = false;
+
+  battleMusic.pause();
+
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem("castleHighScore", highScore);
+    highScoreText.innerText = `High Score: ${highScore}`;
+  }
+
+  showGameOverScreen();
+}
+
+//High Score:
+const highScoreText = document.createElement("div");
+highScoreText.style.position = "absolute";
+highScoreText.style.top = "80px";
+highScoreText.style.left = "20px";
+highScoreText.style.fontSize = "24px";
+highScoreText.style.color = "white";
+highScoreText.style.fontFamily = "fantasy";
+highScoreText.style.pointerEvents = "none";
+
+let highScore = localStorage.getItem("castleHighScore") || 0;
+highScoreText.innerText = `High Score: ${highScore}`;
+
+document.body.appendChild(highScoreText);
+
+//Start screen:
+let gameStarted = false;
+const startScreen = document.getElementById("startScreen");
+const startButton = document.getElementById("startButton");
+
+startButton.addEventListener("click", () => {
+  camera.position.copy(gameplayCameraPos);
+  camera.rotation.copy(gameplayCameraRot);
+
+  battleMusic.currentTime = 0;
+  battleMusic.play();
+
+  startScreen.style.display = "none";
+
+  score = 0;
+  scoreText.innerText = "Score: 0";
+
+  timeRemaining = 30;
+  timerText.innerText = "Time: 30";
+
+  gameOver = false;
+  gameStarted = true;
+})
+
+//Game Over Screen:
+function showGameOverScreen() {
+  const gameOverDiv = document.createElement("div");
+  gameOverDiv.style.position = "absolute";
+  gameOverDiv.style.top = "50%";
+  gameOverDiv.style.left = "50%";
+  gameOverDiv.style.transform = "translate(-50%, -50%)";
+  gameOverDiv.style.textAlign = "center";
+  gameOverDiv.style.color = "white";
+  gameOverDiv.style.fontFamily = "fantasy";
+  gameOverDiv.style.fontSize = "40px";
+
+  gameOverDiv.innerHTML = `
+    <div>Time Up!</div>
+    <div style="font-size:28px;margin-top:10px;">Score: ${score}</div>
+    <button id="retryButton" style="margin-top:20px;font-size:24px;padding:10px 30px;">Try Again</button>
+  `;
+
+  document.body.appendChild(gameOverDiv);
+
+  document.getElementById("retryButton").onclick = () => {
+    location.reload();
+  };
+}
+
 
 // ---------- Scene ----------
 const scene = new THREE.Scene();
@@ -45,12 +158,21 @@ const camera = new THREE.PerspectiveCamera(
 const playerPos = new THREE.Vector3(-95, 760, 445);
 camera.position.copy(playerPos);
 
+const gameplayCameraPos = playerPos.clone();
+const gameplayCameraRot = camera.rotation.clone();
+
 camera.rotation.order = "YXZ";
 camera.rotation.set(
   THREE.MathUtils.degToRad(0), 
   THREE.MathUtils.degToRad(0),  
   0
 );
+
+//Start camera orbit:
+const orbitCenter = new THREE.Vector3(0, 750, 0);
+let orbitAngle = 0;
+const orbitRadius = 800;
+const orbitSpeed = 0.25;
 
 const textureLoader = new THREE.TextureLoader();
 const skyTexture = textureLoader.load(
@@ -222,11 +344,43 @@ function checkCannonballWallCollisions(dt) {
 
 function animate() {
   requestAnimationFrame(animate);
+
   skyTexture.offset.x += 0.00005; 
   skyDome.position.copy(camera.position);
+
+  if (!gameStarted) {
+    orbitAngle += orbitSpeed * clock.getDelta();
+
+    camera.position.x = orbitCenter.x + Math.cos(orbitAngle) * orbitRadius;
+    camera.position.z = orbitCenter.z + Math.sin(orbitAngle) * orbitRadius;
+    camera.position.y = orbitCenter.y + 120 + Math.sin(orbitAngle * 0.6) * 40;
+
+    camera.lookAt(orbitCenter);
+
+    renderer.render(scene, camera);
+    return;
+  }
+
+
   const dt = Math.min(clock.getDelta(), 0.33);
+
+  if (!gameOver) {
+    timeRemaining -= dt;
+
+    if (timeRemaining < 0) {
+      timeRemaining = 0;
+    }
+
+    timerText.innerText = `Time: ${Math.ceil(timeRemaining)}`;
+
+    if (timeRemaining <= 0) {
+      endGame();
+    }
+  }
+
   updateElephants(dt);
   updateKnights(dt);
+
   for (let i = cannonballs.length - 1; i >= 0; i--) {
     const ball = cannonballs[i];
 
@@ -308,6 +462,7 @@ function checkCannonballElephantCollisions() {
         cannonballs.splice(bi, 1);
 
         spawnExplosion(e.mesh.position.clone());
+        playSound(hitSound);
         removeElephant(e.mesh);
         score += 100;
         scoreText.innerText = `Score: ${score}`;
@@ -618,6 +773,7 @@ scene.add(marker);
 
 window.addEventListener("pointerdown", (e) => {
   if (!castle) return;
+  if (!gameStarted || gameOver) return;
 
   mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -668,6 +824,8 @@ window.addEventListener("pointerdown", (e) => {
       duration: 1.2,   // same total travel time each shot
       arcHeight: 25    // same curve height each shot
     });
+
+    playSound(cannonFireSound);
 
     scene.add(cannonballMesh);
     scene.add(cannonballs[cannonballs.length - 1].mesh);
