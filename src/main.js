@@ -29,7 +29,10 @@ const cannonFireSound = new Audio("/audio/fire.mp3");
 cannonFireSound.volume = 0.6;
 
 const hitSound = new Audio("/audio/hit.mp3");
-hitSound.volume = 0.6;
+hitSound.volume = 0.45;
+
+const knightKill = new Audio("/audio/knightKill.mp3");
+knightKill.volume = 0.6
 
 //Score:
 document.body.style.margin = "0";
@@ -505,6 +508,8 @@ function checkCannonballKnightCollisions() {
         cannonballs.splice(bi, 1);
 
         spawnExplosion(k.mesh.position.clone());
+        playSound(hitSound);
+        playSound(knightKill);
         removeKnight(k.mesh);
         score -= 100;
         scoreText.innerText = `Score: ${score}`;
