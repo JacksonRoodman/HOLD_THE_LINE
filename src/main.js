@@ -388,10 +388,27 @@ function animate() {
     const t = Math.min(ball.elapsed / ball.duration, 1);
 
     // Base position along straight line
+    const previousPos = ball.mesh.position.clone();
     const pos = new THREE.Vector3().lerpVectors(ball.start, ball.end, t);
 
     // Add vertical arc
     pos.y += 4 * ball.arcHeight * t * (1 - t);
+    const direction = pos.clone().sub(previousPos);
+    const distance = direction.length();
+
+    if (distance > 0) {
+      direction.normalize();
+      wallRaycaster.set(previousPos, direction);
+      wallRaycaster.far = distance;
+
+      const hits = wallRaycaster.intersectObject(castle, true);
+
+      if (hits.length > 0) {
+        scene.remove(ball.mesh);
+        cannonballs.splice(i, 1);
+        continue;
+      }
+    }
 
     ball.mesh.position.copy(pos);
 
@@ -544,7 +561,7 @@ const elephantTargetPoints = [
   new THREE.Vector3(650, 550, -100),
   new THREE.Vector3( -649.580, 1052.297, -285.888),
   new THREE.Vector3( 101.020, 763.263, 123.801),
-  new THREE.Vector3(-376.770, 554.696, 112.117),
+  new THREE.Vector3(-395.770, 554.696, 112.117),
   new THREE.Vector3( -429.870, 588.085, 180.441),
   new THREE.Vector3( 226.665, 763.263, 117.342),
   new THREE.Vector3( -405.491, 1032.820, -183.197),
@@ -828,7 +845,7 @@ window.addEventListener("pointerdown", (e) => {
     playSound(cannonFireSound);
 
     scene.add(cannonballMesh);
-    scene.add(cannonballs[cannonballs.length - 1].mesh);
+    // scene.add(cannonballs[cannonballs.length - 1].mesh);
 
     console.log(
       "Castle point (world):",
