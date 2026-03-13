@@ -192,6 +192,7 @@ function animate() {
   skyDome.position.copy(camera.position);
   const dt = Math.min(clock.getDelta(), 0.33);
   updateElephants(dt);
+  updateKnights(dt);
   for (let i = cannonballs.length - 1; i >= 0; i--) {
     const ball = cannonballs[i];
 
@@ -212,6 +213,7 @@ function animate() {
     }
   }
   checkCannonballElephantCollisions();
+  checkCannonballKnightCollisions();
   renderer.render(scene, camera);
 }
 
@@ -229,6 +231,14 @@ const castle = await loadLevelOBJ({
   fitCamera: true,
 });
 
+const knightTemplate = await loadLevelOBJ({
+  objPath: "/models/knight.obj",
+  mtlPath: "/models/knight.mtl",
+  scale: 2, 
+  rotation: new THREE.Euler(3*Math.PI/2, 0, 0),
+  fitCamera: false,
+});
+
 const elephantTemplate = await loadLevelOBJ({
   objPath: "/models/cent.obj",
   mtlPath: "/models/cent.mtl",
@@ -241,6 +251,11 @@ elephantTemplate.visible = false;
 const elephantSphere = new THREE.Sphere();
 new THREE.Box3().setFromObject(elephantTemplate).getBoundingSphere(elephantSphere);
 const ELEPHANT_RADIUS = elephantSphere.radius + 7;
+
+
+const knightSphere = new THREE.Sphere();
+new THREE.Box3().setFromObject(knightTemplate).getBoundingSphere(knightSphere);
+const KNIGHT_RADIUS = knightSphere.radius + 2;
 
 const CANNONBALL_RADIUS = 2; 
 
@@ -259,6 +274,28 @@ function checkCannonballElephantCollisions() {
         cannonballs.splice(bi, 1);
 
         removeElephant(e.mesh);
+
+        break;
+      }
+    }
+  }
+}
+
+function checkCannonballKnightCollisions() {
+  for (let bi = cannonballs.length - 1; bi >= 0; bi--) {
+    const b = cannonballs[bi];
+    const bPos = b.mesh.position;
+
+    for (let ki = knights.length - 1; ki >= 0; ki--) {
+      const k = knights[ki];
+      const kPos = k.mesh.position;
+
+      const hitDist = CANNONBALL_RADIUS + KNIGHT_RADIUS;
+      if (bPos.distanceToSquared(kPos) <= hitDist * hitDist) {
+        scene.remove(b.mesh);
+        cannonballs.splice(bi, 1);
+
+        removeKnight(k.mesh);
 
         break;
       }
@@ -327,6 +364,7 @@ const elephantTargetPoints = [
   new THREE.Vector3( -183.977, 863.092, -624.446),
 ];
 const elephants = [];
+const knights = [];
 const occupiedSpawnIndices = new Set();
 
 function pickFreeSpawnIndex() {
@@ -364,29 +402,63 @@ function spawnElephantAtIndex(i) {
   occupiedSpawnIndices.add(i);
 }
 
-let MAX_ACTIVE_ELEPHANTS = elephantSpawnPoints.length;
+function spawnKnightAtIndex(i) {
+  const spawn = elephantSpawnPoints[i];
+  const target = elephantTargetPoints[i];
+
+  const k = knightTemplate.clone(true);
+  k.visible = true;
+  k.position.copy(spawn);
+  k.rotation.copy(knightTemplate.rotation);
+  k.scale.copy(knightTemplate.scale);
+
+  k.userData.isKnightRoot = true;
+  k.userData.spawnIndex = i;
+
+  scene.add(k);
+
+  knights.push({
+    mesh: k,
+    target: target.clone(),
+    speed: 25,
+    arrived: false,
+    spawnIndex: i,
+  });
+
+  occupiedSpawnIndices.add(i);
+}
+
+let MAX_ACTIVE_ELEPHANTS = 7;
+let MAX_ACTIVE_KNIGHTS = 3;
 
 function spawnElephantsBatch() {
   const freeIndices = [];
-
   for (let i = 0; i < elephantSpawnPoints.length; i++) {
     if (!occupiedSpawnIndices.has(i)) {
       freeIndices.push(i);
     }
   }
 
+  // Shuffle the available spots
   for (let i = freeIndices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [freeIndices[i], freeIndices[j]] = [freeIndices[j], freeIndices[i]];
   }
 
-  const numToSpawn = Math.min(
-    MAX_ACTIVE_ELEPHANTS - elephants.length,
-    freeIndices.length
-  );
+  // Spawn Elephants
+  const numElephantsToSpawn = Math.min(MAX_ACTIVE_ELEPHANTS - elephants.length, freeIndices.length);
+  for (let i = 0; i < numElephantsToSpawn; i++) {
+    // .pop() takes the last index and removes it from the list so knights can't use it
+    const index = freeIndices.pop(); 
+    spawnElephantAtIndex(index);
+  }
 
-  for (let i = 0; i < numToSpawn; i++) {
-    spawnElephantAtIndex(freeIndices[i]);
+  // Spawn Knights
+  const numKnightsToSpawn = Math.min(MAX_ACTIVE_KNIGHTS - knights.length, freeIndices.length);
+  for (let i = 0; i < numKnightsToSpawn; i++) {
+    // .pop() takes the next available unique index
+    const index = freeIndices.pop();
+    spawnKnightAtIndex(index);
   }
 }
 
@@ -402,14 +474,25 @@ function removeElephant(elephantRoot) {
   elephants.splice(idx, 1);
   occupiedSpawnIndices.delete(spawnIndex);
 
-  if (elephants.length === 0) {
-    spawnElephantsBatch();
-    return;
-  }
-
   const freeIndex = pickFreeSpawnIndex();
   if (freeIndex !== null) {
     spawnElephantAtIndex(freeIndex);
+  }
+}
+
+function removeKnight(knightRoot) {
+  const idx = knights.findIndex(k => k.mesh === knightRoot);
+  if (idx === -1) return;
+
+  const spawnIndex = knights[idx].spawnIndex;
+
+  scene.remove(knightRoot);
+  knights.splice(idx, 1);
+  occupiedSpawnIndices.delete(spawnIndex);
+
+  const freeIndex = pickFreeSpawnIndex();
+  if (freeIndex !== null) {
+    spawnKnightAtIndex(freeIndex);
   }
 }
 
@@ -430,6 +513,29 @@ function updateElephants(dt){
     if(step >= dist){
       pos.copy(e.target);
       e.arrived = true;
+    } else {
+      pos.addScaledVector(toTarget, step);
+    }
+  }
+}
+
+function updateKnights(dt){
+  for (const k of knights) {
+    if(k.arrived) continue;
+    const pos = k.mesh.position;
+    const toTarget = new THREE.Vector3().subVectors(k.target, pos);
+    const dist = toTarget.length();
+    const stopRadius = 1.0;
+    if(dist <= stopRadius){
+      k.mesh.position.copy(k.target);
+      k.arrived = true;
+      continue;
+    } 
+    toTarget.normalize();
+    const step = k.speed * dt;
+    if(step >= dist){
+      pos.copy(k.target);
+      k.arrived = true;
     } else {
       pos.addScaledVector(toTarget, step);
     }
@@ -478,6 +584,15 @@ window.addEventListener("pointerdown", (e) => {
       break;
     }
   }
+
+  for (const knight of knights){
+    if (hits.length > 0) break;
+    hits = raycaster.intersectObject(knight.mesh, true);
+    if (hits.length > 0) {
+      break;
+    }
+  }
+
   if (hits.length <= 0) {
     hits = raycaster.intersectObject(castle, true);
   }
