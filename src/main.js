@@ -9,11 +9,29 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 
-
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.8;
 
+//Music:
+const battleMusic = new Audio("/audio/battle.mp3");
+battleMusic.loop = true;
+battleMusic.volume = 0.4;
+
+//Sound Effects:
+function playSound(sound) {
+  const s = sound.cloneNode();
+  s.volume = sound.volume;
+  s.play();
+}
+
+const cannonFireSound = new Audio("/audio/fire.mp3");
+cannonFireSound.volume = 0.6;
+
+const hitSound = new Audio("/audio/hit.mp3");
+hitSound.volume = 0.6;
+
+//Score:
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
 const scoreText = document.createElement("div");
@@ -36,6 +54,9 @@ const startButton = document.getElementById("startButton");
 startButton.addEventListener("click", () => {
   camera.position.copy(gameplayCameraPos);
   camera.rotation.copy(gameplayCameraRot);
+
+  battleMusic.currentTime = 0;
+  battleMusic.play();
 
   startScreen.style.display = "none";
   gameStarted = true;
@@ -333,6 +354,7 @@ function checkCannonballElephantCollisions() {
         cannonballs.splice(bi, 1);
 
         spawnExplosion(e.mesh.position.clone());
+        playSound(hitSound);
         removeElephant(e.mesh);
         score++;
         scoreText.innerText = `Score: ${score}`;
@@ -583,6 +605,8 @@ window.addEventListener("pointerdown", (e) => {
       duration: 1.2,   // same total travel time each shot
       arcHeight: 25    // same curve height each shot
     });
+
+    playSound(cannonFireSound);
 
     scene.add(cannonballMesh);
     scene.add(cannonballs[cannonballs.length - 1].mesh);
