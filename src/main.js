@@ -43,7 +43,7 @@ camera.rotation.set(
 
 const textureLoader = new THREE.TextureLoader();
 const skyTexture = textureLoader.load(
-  "/models/sky.jpg",
+  "/models/sky.png",
   () => {
     console.log("Sky texture loaded");
   },
@@ -55,7 +55,7 @@ const skyTexture = textureLoader.load(
 skyTexture.colorSpace = THREE.SRGBColorSpace;
 skyTexture.wrapS = THREE.RepeatWrapping;
 skyTexture.wrapT = THREE.ClampToEdgeWrapping;
-skyTexture.repeat.set(1, 1);
+skyTexture.repeat.set(2, 5);
 const skyGeometry = new THREE.SphereGeometry(2500, 64, 64);
 const skyMaterial = new THREE.MeshBasicMaterial({
   map: skyTexture,
