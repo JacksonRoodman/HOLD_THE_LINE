@@ -3,7 +3,6 @@ import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader.js";
 import { update } from "three/examples/jsm/libs/tween.module.js";
 
-// ---------- Renderer ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -13,12 +12,10 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.8;
 
-//Music:
 const battleMusic = new Audio("/audio/battle.mp3");
 battleMusic.loop = true;
 battleMusic.volume = 0.4;
 
-//Sound Effects:
 function playSound(sound) {
   const s = sound.cloneNode();
   s.volume = sound.volume;
@@ -34,7 +31,6 @@ hitSound.volume = 0.45;
 const knightKill = new Audio("/audio/knightKill.mp3");
 knightKill.volume = 0.6
 
-//Score:
 document.body.style.margin = "0";
 document.body.appendChild(renderer.domElement);
 const scoreText = document.createElement("div");
@@ -49,7 +45,6 @@ scoreText.innerText = "Score: 0";
 document.body.appendChild(scoreText);
 let score = 0;
 
-//Timer:
 let timeRemaining = 30;
 let gameOver = false;
 
@@ -79,7 +74,6 @@ function endGame() {
   showGameOverScreen();
 }
 
-//High Score:
 const highScoreText = document.createElement("div");
 highScoreText.style.position = "absolute";
 highScoreText.style.top = "80px";
@@ -94,7 +88,6 @@ highScoreText.innerText = `High Score: ${highScore}`;
 
 document.body.appendChild(highScoreText);
 
-//Start screen:
 let gameStarted = false;
 const startScreen = document.getElementById("startScreen");
 const startButton = document.getElementById("startButton");
@@ -118,7 +111,6 @@ startButton.addEventListener("click", () => {
   gameStarted = true;
 })
 
-//Game Over Screen:
 function showGameOverScreen() {
   const gameOverDiv = document.createElement("div");
   gameOverDiv.style.position = "absolute";
@@ -144,11 +136,8 @@ function showGameOverScreen() {
 }
 
 
-// ---------- Scene ----------
 const scene = new THREE.Scene();
-// scene.background = new THREE.Color(0x87CEEB);
 
-// ---------- Camera (perspective) ----------
 const camera = new THREE.PerspectiveCamera(
   70,
   window.innerWidth / window.innerHeight,
@@ -156,8 +145,6 @@ const camera = new THREE.PerspectiveCamera(
   5000
 );
 
-// ---------- Static camera position + static view ----------
-//const playerPos = new THREE.Vector3(500, 650, 240);
 const playerPos = new THREE.Vector3(-95, 760, 445);
 camera.position.copy(playerPos);
 
@@ -171,7 +158,6 @@ camera.rotation.set(
   0
 );
 
-//Start camera orbit:
 const orbitCenter = new THREE.Vector3(0, 750, 0);
 let orbitAngle = 0;
 const orbitRadius = 800;
@@ -207,12 +193,6 @@ scene.add(hemi);
 
 const ambient = new THREE.AmbientLight(0x87aaff, 0.35);
 scene.add(ambient);
-
-// const dir = new THREE.DirectionalLight(0xffffff, 1.0);
-// dir.position.set(10, 20, 10);
-// dir.castShadow = true;
-// dir.shadow.mapSize.set(2048, 2048);
-// scene.add(dir);
 
 const explosionTexture = new THREE.TextureLoader().load("/models/explosion.gif");
 explosionTexture.colorSpace = THREE.SRGBColorSpace;
@@ -254,10 +234,6 @@ sun.shadow.camera.near = 0.5;
 sun.shadow.camera.far = 3000;
 
 sun.shadow.bias = -0.0005;
-
-// const fill = new THREE.DirectionalLight(0xffffff, 0.6);
-// fill.position.set(-10, 10, -5);
-// scene.add(fill);
 
 const grid = new THREE.GridHelper(50, 50);
 grid.position.y = 0;
@@ -342,7 +318,6 @@ function checkCannonballWallCollisions(dt) {
     }
     ball.mesh.position.add(movement);
   }
-  // console.log("wall hits:", hits.length, hits[0]?.distance);
 }
 
 function animate() {
@@ -390,11 +365,9 @@ function animate() {
     ball.elapsed += dt;
     const t = Math.min(ball.elapsed / ball.duration, 1);
 
-    // Base position along straight line
     const previousPos = ball.mesh.position.clone();
     const pos = new THREE.Vector3().lerpVectors(ball.start, ball.end, t);
 
-    // Add vertical arc
     pos.y += 4 * ball.arcHeight * t * (1 - t);
     const direction = pos.clone().sub(previousPos);
     const distance = direction.length();
@@ -646,8 +619,8 @@ function spawnKnightAtIndex(i) {
   occupiedSpawnIndices.add(i);
 }
 
-let MAX_ACTIVE_ELEPHANTS = 5;
-let MAX_ACTIVE_KNIGHTS = 10;
+let MAX_ACTIVE_ELEPHANTS = 7;
+let MAX_ACTIVE_KNIGHTS = 5;
 
 function spawnElephantsBatch() {
   const freeIndices = [];
@@ -657,25 +630,19 @@ function spawnElephantsBatch() {
     }
   }
 
-  // Shuffle the available spots
   for (let i = freeIndices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [freeIndices[i], freeIndices[j]] = [freeIndices[j], freeIndices[i]];
   }
 
-  // Spawn Elephants
   const numElephantsToSpawn = Math.min(MAX_ACTIVE_ELEPHANTS - elephants.length, freeIndices.length);
   for (let i = 0; i < numElephantsToSpawn; i++) {
-    // .pop() takes the last index and removes it from the list so knights can't use it
     const index = freeIndices.pop(); 
     spawnElephantAtIndex(index);
   }
 
-  // Spawn Knights
   const numKnightsToSpawn = Math.min(MAX_ACTIVE_KNIGHTS - knights.length, freeIndices.length);
-  for (let i = 0; i < numKnightsToSpawn; i++) {
-    // .pop() takes the next available unique index
-    const index = freeIndices.pop();
+  for (let i = 0; i < numKnightsToSpawn; i++) {    const index = freeIndices.pop();
     spawnKnightAtIndex(index);
   }
 }
@@ -802,7 +769,6 @@ window.addEventListener("pointerdown", (e) => {
 
   raycaster.setFromCamera(mouse, camera);
 
-  // hit test against the castle mesh
   let hits = [];
   for (const elephant of elephants){
     hits = raycaster.intersectObject(elephant.mesh, true);
@@ -829,7 +795,7 @@ window.addEventListener("pointerdown", (e) => {
 
   if (hits.length > 0) {
     const hit = hits[0];
-    const p = hit.point; // <-- WORLD COORDINATES
+    const p = hit.point; 
 
     marker.visible = true;
     marker.position.copy(p);
@@ -843,21 +809,19 @@ window.addEventListener("pointerdown", (e) => {
       start: cannonStart.clone(),
       end: p.clone(),
       elapsed: 0,
-      duration: 1.2,   // same total travel time each shot
-      arcHeight: 25    // same curve height each shot
+      duration: 1.2,  
+      arcHeight: 25,
     });
 
     playSound(cannonFireSound);
 
     scene.add(cannonballMesh);
-    // scene.add(cannonballs[cannonballs.length - 1].mesh);
 
     console.log(
       "Castle point (world):",
       `x=${p.x.toFixed(3)} y=${p.y.toFixed(3)} z=${p.z.toFixed(3)}`
     );
 
-    // Optional: also log which mesh you clicked
     console.log("Mesh:", hit.object.name || hit.object.uuid);
   }
 });
